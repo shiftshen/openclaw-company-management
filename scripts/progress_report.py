@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse, json, os, secrets
+
+import argparse
+import json
+import os
+import secrets
 from datetime import datetime
 from pathlib import Path
+
 
 def openclaw_root() -> Path:
     env = os.environ.get('OPENCLAW_ROOT')
@@ -16,12 +21,19 @@ ROOT = openclaw_root()
 BUS = Path(os.environ.get('OPENCLAW_AGENT_BUS', ROOT / 'ops' / 'agent_bus')).expanduser()
 STATES = {'acknowledged', 'in_progress', 'blocked', 'completed'}
 
-def now(): return datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-def build_id(): return f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{secrets.token_hex(3)}"
+
+def now():
+    return datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+
+
+def build_id():
+    return f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{secrets.token_hex(3)}"
+
 
 def write_json(p, obj):
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(obj, ensure_ascii=False, indent=2) + '\n')
+
 
 def main():
     ap = argparse.ArgumentParser(description='Send a structured progress report from Codex/Agent to Main.')
@@ -77,14 +89,16 @@ def main():
         'status': args.state,
         'payload': payload
     }
-    
+
     out = BUS / 'inbox' / 'main' / f'progress_{args.state}_{task_id}.json'
-    
+
     if not args.apply:
         print(json.dumps({'dry_run': True, 'target_file': str(out), 'report': obj}, ensure_ascii=False, indent=2))
         return
-        
+
     write_json(out, obj)
     print(json.dumps({'dry_run': False, 'ok': True, 'task_id': task_id, 'file': str(out), 'report': payload}, ensure_ascii=False, indent=2))
 
-if __name__ == '__main__': main()
+
+if __name__ == '__main__':
+    main()

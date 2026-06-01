@@ -15,7 +15,7 @@ fi
 WORKSPACE="${OPENCLAW_WORKSPACE:-$DEFAULT_WORKSPACE}"
 SCRIPTS_DIR="$WORKSPACE/scripts"
 
-# 1. 数据库物理锁初始化；只建表/索引，不删除现有数据
+# 1. 初始化数据库结构；只建表/索引，不删除现有数据
 DB_DIR="$WORKSPACE/config"
 DB_PATH="$DB_DIR/skill_accounts.db"
 mkdir -p "$DB_DIR"
@@ -40,7 +40,7 @@ finally:
 PY
 fi
 
-# 2. 统一执行器分发
+# 2. 分发统一执行器
 echo "-> 分发统一执行器..."
 for script in \
   unified_time.py \
@@ -57,7 +57,7 @@ do
   install -m 0755 "$BASE_DIR/scripts/$script" "$SCRIPTS_DIR/$script"
 done
 
-# 3. 规程同步提示
+# 3. 输出部署结果
 echo "-> 员工入职规程已落盘至: $BASE_DIR/SKILL.md"
 echo "-> 目标工作区: $WORKSPACE"
 echo "-> 部署完成！整个机器已被收编为统一标准架构。"

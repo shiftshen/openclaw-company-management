@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 """
 统一外发接口层 (Unified Outbound Gateway)
 功能：通过一个入口发送消息到 LINE / Telegram / WeChat，自动选择可用 channel
@@ -19,7 +21,9 @@ import os
 import shutil
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
+
 
 def openclaw_root() -> Path:
     env = os.environ.get('OPENCLAW_ROOT')
@@ -31,7 +35,7 @@ def openclaw_root() -> Path:
 
 
 ROOT = openclaw_root()
-OPENCALW_CONFIG = Path(os.environ.get('OPENCLAW_CONFIG', ROOT / 'openclaw.json')).expanduser()
+OPENCLAW_CONFIG = Path(os.environ.get('OPENCLAW_CONFIG', ROOT / 'openclaw.json')).expanduser()
 WORKSPACE = Path(os.environ.get('OPENCLAW_WORKSPACE', ROOT / 'workspace-main')).expanduser()
 if 'OPENCLAW_WORKSPACE' not in os.environ and Path('/Users/shift/openclaw/workspace-xmanx').exists():
     WORKSPACE = Path('/Users/shift/openclaw/workspace-xmanx')
@@ -45,7 +49,7 @@ NESTCAR_LINE_SCRIPT = ROOT / 'workspace-nestcar' / 'scripts' / 'send_line_push.p
 
 
 def load_config():
-    return json.loads(OPENCALW_CONFIG.read_text())
+    return json.loads(OPENCLAW_CONFIG.read_text())
 
 
 def resolve_openclaw_bin() -> str:
@@ -110,9 +114,9 @@ def send_line_via_script(target: str, message: str, account: str = 'nestcar') ->
                 result = json.loads(r2.stdout)
                 if result.get('ok'):
                     return {'ok': True, 'method': 'unified_browser', 'result': result}
-            except:
+            except json.JSONDecodeError:
                 pass
-    except:
+    except Exception:
         pass
 
     # fallback: legacy 脚本
@@ -129,7 +133,7 @@ def send_line_via_script(target: str, message: str, account: str = 'nestcar') ->
     try:
         result = json.loads(r.stdout)
         return result
-    except:
+    except json.JSONDecodeError:
         return {
             'status': 'script_error', 'method': 'legacy_fallback',
             'returncode': r.returncode,
@@ -152,13 +156,22 @@ def send_telegram(target: str, message: str, account: str = 'default') -> dict:
     try:
         result = json.loads(r.stdout)
         return result
-    except:
+    except json.JSONDecodeError:
         return {
             'ok': r.returncode == 0,
             'returncode': r.returncode,
             'stdout': r.stdout[:500],
             'stderr': r.stderr[:500],
         }
+
+
+def send_line_via_browser_fallback(day: str, target: str) -> dict:
+    return {
+        'ok': False,
+        'status': 'browser_fallback_unavailable',
+        'day': day,
+        'target': target,
+    }
 
 
 def send(platform: str, target: str, message: str,
@@ -183,7 +196,7 @@ def send(platform: str, target: str, message: str,
         result = send_line_via_script(target, message, script_account)
         if result.get('ok'):
             return {'platform': 'line', 'method': 'direct_script', 'ok': True, 'result': result}
-        
+
         # 尝试3: 429时走浏览器 fallback（发送到chindahotpot管理的群）
         http_429 = result.get('status') == 429 or '429' in str(result) or 'monthly limit' in str(result).lower()
         if http_429 and auto_fallback and CHINDA_LINE_SCRIPT.exists():
