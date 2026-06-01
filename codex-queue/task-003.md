@@ -44,10 +44,14 @@ verification: 本地代码变更已 push 到 GitHub；远端 192.168.1.83 已运
 - 验证内容包括 SQLite schema 初始化、`install.sh` 部署脚本完整性、`skill_accounts.db` 已有行保留、Python 脚本编译。
 
 ### GitHub 提交回执
-- commit: `pending before push in this report block`
-- push: `pending before push in this report block`
+- commit: `245067a fix: support workspace-main deployment`
+- follow-up commit: `8fd72b6 fix: support install without sqlite cli`
+- push: `origin/main` 已更新到 `8fd72b6`
 
 ### 远端执行回执
 - target: `192.168.1.83`
 - command: `git pull && OPENCLAW_WORKSPACE=$HOME/openclaw/workspace-main ./install.sh`
-- result: `pending before remote execution in this report block`
+- git: `/home/happy/openclaw-company-management` 已 fast-forward 到 `8fd72b6`
+- install: 成功，目标工作区 `/home/happy/openclaw/workspace-main`
+- scripts: `unified_time.py`、`unified_browser.py`、`unified_outbound.py`、`agent_bus_worker.py`、`agent_registry.py`、`request_main.py`、`agent_comm_contract.py` 均存在且可执行
+- db: `/home/happy/openclaw/workspace-main/config/skill_accounts.db` 安装前后大小均为 `40960` bytes，sha256 均为 `92daf30a491880e3a5407eef54e0bf7019750680a90962b8175b7fa28b5fed69`，未被清空破坏
