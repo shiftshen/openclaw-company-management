@@ -41,14 +41,14 @@ description: "OpenClaw 核心公司管理技能包：涵盖统一执行器、单
 - `agentId`: 员工全局唯一标识（如 `krothong`, `chindahotpot`）。
 - `aliases`: 识别别名（如 `["金达", "chinda"]`）。
 - `business_domain`: 负责的具体业务线范围。
-- `workspace_path`: 专属办公桌路径（严格隔离，如 `/Users/shift/openclaw/workspace-krothong`）。
+- `workspace_path`: 专属办公桌路径（严格隔离，如 `${OPENCLAW_ROOT:-$HOME/openclaw}/workspace-krothong`）。
 - `cron_heartbeat`: 心跳/打卡频率（例：每5分钟，或每日定时）。
 - `report_to`: 汇报对象（通常为 `main`）。
 
 ### 2. 标准入职办理步骤 (Onboarding Pipeline)
 
 #### 步骤一：全局登记 (Global Registration)
-- 将新员工参数写入注册表：`/Users/shift/openclaw/workspace-xmanx/config/agent_registry.json`。
+- 将新员工参数写入注册表：`${OPENCLAW_WORKSPACE:-$HOME/openclaw/workspace-main}/config/agent_registry.json`；本机 Shift 环境可继续回退到既有 `workspace-xmanx`。
 - 如果涉及 UI/前端路由，执行 `agent_registry.py --discover` 刷新全公司通讯录。
 
 #### 步骤二：分配工位与标准六件套 (Workspace Initialization)
@@ -76,5 +76,5 @@ description: "OpenClaw 核心公司管理技能包：涵盖统一执行器、单
 ## 三、部署与更新说明 (Deployment)
 要将这套管理机制迁移到新的 Mac 节点：
 1. 检出此目录 `skills/company-management`。
-2. 在新主机执行 `sqlite3 ~/openclaw/workspace-xmanx/config/skill_accounts.db < templates/skill_accounts.sql` 初始化全局数据库。
-3. 将 `scripts/` 下的所有统一执行器软链到全局环境。
+2. 执行 `OPENCLAW_WORKSPACE=$HOME/openclaw/workspace-main ./install.sh` 初始化或加固全局数据库；该动作只建表/索引，不清空已有 `skill_accounts.db` 数据。
+3. `install.sh` 会同步标准执行器到目标工作区 `scripts/`，包括 `unified_time.py`、`unified_browser.py`、`unified_outbound.py`、`agent_bus_worker.py`、`agent_registry.py`、`request_main.py` 及其通信契约依赖。

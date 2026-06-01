@@ -1,19 +1,32 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse, json, shutil, hashlib
+import argparse, json, os, shutil, hashlib
 from datetime import datetime
 from pathlib import Path
 import subprocess
 
-BUS=Path('/Users/shift/openclaw/ops/agent_bus')
+def openclaw_root() -> Path:
+    env = os.environ.get('OPENCLAW_ROOT')
+    if env:
+        return Path(env).expanduser()
+    if Path('/Users/shift/openclaw').exists():
+        return Path('/Users/shift/openclaw')
+    return Path.home() / 'openclaw'
+
+
+ROOT = openclaw_root()
+MAIN_WORKSPACE = Path(os.environ.get('OPENCLAW_WORKSPACE', ROOT / 'workspace-main')).expanduser()
+if 'OPENCLAW_WORKSPACE' not in os.environ and Path('/Users/shift/openclaw/workspace-xmanx').exists():
+    MAIN_WORKSPACE = Path('/Users/shift/openclaw/workspace-xmanx')
+BUS=Path(os.environ.get('OPENCLAW_AGENT_BUS', ROOT / 'ops' / 'agent_bus')).expanduser()
 WORKSPACES={
- 'main': Path('/Users/shift/openclaw/workspace-xmanx'),
- 'nestcar': Path('/Users/shift/openclaw/workspace-nestcar'),
- 'chindahotpot': Path('/Users/shift/openclaw/workspace-chindahotpot'),
- 'invest': Path('/Users/shift/openclaw/workspace-invest'),
- 'video-creator': Path('/Users/shift/openclaw/workspace-video-creator'),
- 'video-publisher': Path('/Users/shift/openclaw/workspace-video-publisher'),
- 'video-ops': Path('/Users/shift/openclaw/workspace-video-ops'),
+ 'main': MAIN_WORKSPACE,
+ 'nestcar': ROOT / 'workspace-nestcar',
+ 'chindahotpot': ROOT / 'workspace-chindahotpot',
+ 'invest': ROOT / 'workspace-invest',
+ 'video-creator': ROOT / 'workspace-video-creator',
+ 'video-publisher': ROOT / 'workspace-video-publisher',
+ 'video-ops': ROOT / 'workspace-video-ops',
 }
 
 def sha256_file(p: Path) -> str:

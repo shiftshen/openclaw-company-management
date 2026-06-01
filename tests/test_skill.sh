@@ -17,21 +17,41 @@ if ! echo "$TABLES" | grep -q "skill_accounts"; then
 fi
 echo "SUCCESS: DB schema applied cleanly."
 
-# 2. Test Agent Registry Tool
-echo "[2] Testing Agent Registry Tool..."
-export OPENCLAW_ROOT_WORKSPACE="$TMP_DIR"
+# 2. Test install.sh deploys all executors without deleting DB rows
+echo "[2] Testing install.sh deployment and DB preservation..."
+export OPENCLAW_ROOT="$TMP_DIR/openclaw"
+export OPENCLAW_WORKSPACE="$TMP_DIR/openclaw/workspace-main"
+mkdir -p "$OPENCLAW_WORKSPACE/config" "$OPENCLAW_WORKSPACE/scripts"
+sqlite3 "$OPENCLAW_WORKSPACE/config/skill_accounts.db" < "$BASE_DIR/templates/skill_accounts.sql"
+sqlite3 "$OPENCLAW_WORKSPACE/config/skill_accounts.db" "INSERT OR IGNORE INTO skill_accounts (skill, business, platform, account_label, notes) VALUES ('test-skill','testbiz','line','test-account','preserve-check');"
+bash "$BASE_DIR/install.sh" >/dev/null
+for script in unified_time.py unified_browser.py unified_outbound.py agent_bus_worker.py agent_registry.py request_main.py agent_comm_contract.py; do
+  if [[ ! -x "$OPENCLAW_WORKSPACE/scripts/$script" ]]; then
+    echo "FAIL: deployed script missing or not executable: $script"
+    exit 1
+  fi
+done
+ROW_COUNT=$(sqlite3 "$OPENCLAW_WORKSPACE/config/skill_accounts.db" "SELECT COUNT(*) FROM skill_accounts WHERE business='testbiz' AND account_label='test-account';")
+if [[ "$ROW_COUNT" != "1" ]]; then
+  echo "FAIL: existing skill_accounts.db row was not preserved"
+  exit 1
+fi
+echo "SUCCESS: install.sh deployed executors and preserved DB data."
+
+# 3. Test Agent Registry Tool
+echo "[3] Testing Agent Registry Tool..."
 mkdir -p "$TMP_DIR/config"
 python3 "$BASE_DIR/scripts/agent_registry.py" --discover >/dev/null || true
-if [[ -f "$TMP_DIR/config/agent_registry.json" ]]; then
+if [[ -f "$OPENCLAW_WORKSPACE/config/agent_registry.json" ]]; then
   echo "SUCCESS: Agent registry created."
 else
   echo "WARNING: agent_registry.json not generated, but discovery ran."
 fi
 
-# 3. Test Unified Time syntax
-echo "[3] Testing unified_time.py compilation..."
-python3 -m py_compile "$BASE_DIR/scripts/unified_time.py"
-echo "SUCCESS: unified_time.py syntax OK."
+# 4. Test Python script compilation
+echo "[4] Testing Python script compilation..."
+python3 -m py_compile "$BASE_DIR"/scripts/*.py
+echo "SUCCESS: Python syntax OK."
 
 echo "=== All packaging tests passed ==="
 rm -rf "$TMP_DIR"

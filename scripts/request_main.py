@@ -1,13 +1,25 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse, json, secrets, sys
+import argparse, json, os, secrets, sys
 from datetime import datetime
 from pathlib import Path
 from agent_comm_contract import normalize_optional, request_requires_strict_fields, require_execution_fields
 
-MAIN_WS=Path('/Users/shift/openclaw/workspace-xmanx')
+def openclaw_root() -> Path:
+    env = os.environ.get('OPENCLAW_ROOT')
+    if env:
+        return Path(env).expanduser()
+    if Path('/Users/shift/openclaw').exists():
+        return Path('/Users/shift/openclaw')
+    return Path.home() / 'openclaw'
+
+
+ROOT = openclaw_root()
+MAIN_WS=Path(os.environ.get('OPENCLAW_WORKSPACE', ROOT / 'workspace-main')).expanduser()
+if 'OPENCLAW_WORKSPACE' not in os.environ and Path('/Users/shift/openclaw/workspace-xmanx').exists():
+    MAIN_WS=Path('/Users/shift/openclaw/workspace-xmanx')
 REG=MAIN_WS/'config'/'agent_registry.json'
-BUS=Path('/Users/shift/openclaw/ops/agent_bus')
+BUS=Path(os.environ.get('OPENCLAW_AGENT_BUS', ROOT / 'ops' / 'agent_bus')).expanduser()
 REQUEST_TYPES={'blocker','bug_report','debug_request','approval_request','ops_request','review_request','governance_request','cross_agent_handoff','evidence_for_verification'}
 PRIORITY={'P1','P2','P3'}
 

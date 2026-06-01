@@ -21,15 +21,27 @@ import subprocess
 import sys
 from pathlib import Path
 
-OPENCALW_CONFIG = Path('/Users/shift/openclaw/openclaw.json')
-WORKSPACE = Path('/Users/shift/openclaw/workspace-xmanx')
+def openclaw_root() -> Path:
+    env = os.environ.get('OPENCLAW_ROOT')
+    if env:
+        return Path(env).expanduser()
+    if Path('/Users/shift/openclaw').exists():
+        return Path('/Users/shift/openclaw')
+    return Path.home() / 'openclaw'
+
+
+ROOT = openclaw_root()
+OPENCALW_CONFIG = Path(os.environ.get('OPENCLAW_CONFIG', ROOT / 'openclaw.json')).expanduser()
+WORKSPACE = Path(os.environ.get('OPENCLAW_WORKSPACE', ROOT / 'workspace-main')).expanduser()
+if 'OPENCLAW_WORKSPACE' not in os.environ and Path('/Users/shift/openclaw/workspace-xmanx').exists():
+    WORKSPACE = Path('/Users/shift/openclaw/workspace-xmanx')
 
 # 统一入口 — 查 skill_accounts.db，不再硬编码业务脚本路径
 SKILL_DB = WORKSPACE / 'scripts' / 'skill_accounts_db.py'
 UNIFIED_BROWSER = WORKSPACE / 'scripts' / 'unified_browser.py'
 # 保留 legacy 脚本路径作为 fallback
-CHINDA_LINE_SCRIPT = Path('/Users/shift/openclaw/workspace-chindahotpot/scripts/send_validated_store_pushes.py')
-NESTCAR_LINE_SCRIPT = Path('/Users/shift/openclaw/workspace-nestcar/scripts/send_line_push.py')
+CHINDA_LINE_SCRIPT = ROOT / 'workspace-chindahotpot' / 'scripts' / 'send_validated_store_pushes.py'
+NESTCAR_LINE_SCRIPT = ROOT / 'workspace-nestcar' / 'scripts' / 'send_line_push.py'
 
 
 def load_config():

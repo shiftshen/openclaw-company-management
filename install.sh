@@ -4,21 +4,40 @@ set -euo pipefail
 echo ">>> 开始部署 OpenClaw 公司管理技能包 (Company Management Skill)..."
 
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-XMANX_WORKSPACE="/Users/shift/openclaw/workspace-xmanx"
+OPENCLAW_ROOT="${OPENCLAW_ROOT:-${HOME}/openclaw}"
+if [[ "${HOME}" == "/Users/shift" && -d "/Users/shift/openclaw" ]]; then
+  OPENCLAW_ROOT="${OPENCLAW_ROOT:-/Users/shift/openclaw}"
+fi
+DEFAULT_WORKSPACE="${OPENCLAW_ROOT}/workspace-main"
+if [[ "${HOME}" == "/Users/shift" && -d "/Users/shift/openclaw/workspace-xmanx" ]]; then
+  DEFAULT_WORKSPACE="/Users/shift/openclaw/workspace-xmanx"
+fi
+WORKSPACE="${OPENCLAW_WORKSPACE:-$DEFAULT_WORKSPACE}"
+SCRIPTS_DIR="$WORKSPACE/scripts"
 
-# 1. 数据库物理锁初始化
-DB_DIR="$XMANX_WORKSPACE/config"
+# 1. 数据库物理锁初始化；只建表/索引，不删除现有数据
+DB_DIR="$WORKSPACE/config"
 DB_PATH="$DB_DIR/skill_accounts.db"
 mkdir -p "$DB_DIR"
+mkdir -p "$SCRIPTS_DIR"
 echo "-> 校验并加固底层数据库约束 ($DB_PATH)..."
 sqlite3 "$DB_PATH" < "$BASE_DIR/templates/skill_accounts.sql"
 
 # 2. 统一执行器分发
 echo "-> 分发统一执行器..."
-cp "$BASE_DIR/scripts/unified_time.py" "$XMANX_WORKSPACE/scripts/"
-cp "$BASE_DIR/scripts/unified_browser.py" "$XMANX_WORKSPACE/scripts/"
-cp "$BASE_DIR/scripts/unified_outbound.py" "$XMANX_WORKSPACE/scripts/"
+for script in \
+  unified_time.py \
+  unified_browser.py \
+  unified_outbound.py \
+  agent_bus_worker.py \
+  agent_registry.py \
+  request_main.py \
+  agent_comm_contract.py
+do
+  install -m 0755 "$BASE_DIR/scripts/$script" "$SCRIPTS_DIR/$script"
+done
 
 # 3. 规程同步提示
 echo "-> 员工入职规程已落盘至: $BASE_DIR/SKILL.md"
+echo "-> 目标工作区: $WORKSPACE"
 echo "-> 部署完成！整个机器已被收编为统一标准架构。"

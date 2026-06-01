@@ -1,9 +1,27 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse, json, subprocess, sys
+import argparse, json, os, subprocess, sys
 from pathlib import Path
-REG=Path('/Users/shift/openclaw/workspace-xmanx/config/agent_registry.json')
-def load(): return json.loads(REG.read_text())
+
+def openclaw_root() -> Path:
+    env = os.environ.get('OPENCLAW_ROOT')
+    if env:
+        return Path(env).expanduser()
+    if Path('/Users/shift/openclaw').exists():
+        return Path('/Users/shift/openclaw')
+    return Path.home() / 'openclaw'
+
+
+ROOT = openclaw_root()
+WORKSPACE = Path(os.environ.get('OPENCLAW_WORKSPACE', ROOT / 'workspace-main')).expanduser()
+if 'OPENCLAW_WORKSPACE' not in os.environ and Path('/Users/shift/openclaw/workspace-xmanx').exists():
+    WORKSPACE = Path('/Users/shift/openclaw/workspace-xmanx')
+REG=Path(os.environ.get('OPENCLAW_AGENT_REGISTRY', WORKSPACE / 'config' / 'agent_registry.json')).expanduser()
+
+def load():
+    if not REG.exists():
+        return {'agents': {}}
+    return json.loads(REG.read_text())
 def norm(s): return ''.join(str(s).lower().replace('-', '').replace('_','').split())
 def resolve(q):
     data=load(); nq=norm(q); hits=[]
