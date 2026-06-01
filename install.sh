@@ -21,7 +21,24 @@ DB_PATH="$DB_DIR/skill_accounts.db"
 mkdir -p "$DB_DIR"
 mkdir -p "$SCRIPTS_DIR"
 echo "-> 校验并加固底层数据库约束 ($DB_PATH)..."
-sqlite3 "$DB_PATH" < "$BASE_DIR/templates/skill_accounts.sql"
+if command -v sqlite3 >/dev/null 2>&1; then
+  sqlite3 "$DB_PATH" < "$BASE_DIR/templates/skill_accounts.sql"
+else
+  python3 - "$DB_PATH" "$BASE_DIR/templates/skill_accounts.sql" <<'PY'
+import sqlite3
+import sys
+from pathlib import Path
+
+db_path = Path(sys.argv[1])
+schema_path = Path(sys.argv[2])
+conn = sqlite3.connect(db_path)
+try:
+    conn.executescript(schema_path.read_text())
+    conn.commit()
+finally:
+    conn.close()
+PY
+fi
 
 # 2. 统一执行器分发
 echo "-> 分发统一执行器..."
