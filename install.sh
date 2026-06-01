@@ -51,7 +51,8 @@ for script in \
   agent_registry.py \
   request_main.py \
   agent_comm_contract.py \
-  cleanup_trash.sh
+  cleanup_trash.sh \
+  progress_report.py
 do
   install -m 0755 "$BASE_DIR/scripts/$script" "$SCRIPTS_DIR/$script"
 done
