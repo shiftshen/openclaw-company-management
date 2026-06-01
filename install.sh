@@ -46,10 +46,12 @@ for script in \
   unified_time.py \
   unified_browser.py \
   unified_outbound.py \
+  skill_accounts_db.py \
   agent_bus_worker.py \
   agent_registry.py \
   request_main.py \
-  agent_comm_contract.py
+  agent_comm_contract.py \
+  cleanup_trash.sh
 do
   install -m 0755 "$BASE_DIR/scripts/$script" "$SCRIPTS_DIR/$script"
 done
