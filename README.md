@@ -35,6 +35,9 @@ It is designed for local-first OpenClaw deployments, but the install path can be
 - **Agent Communication Contract**
   Standardizes Codex/Main communication around explicit states such as `acknowledged`, `in_progress`, `blocked`, and `completed`.
 
+- **Company Kernel Bridge**
+  Exposes a lightweight OpenClaw-side health bridge for Company Kernel `doctor --summary` and the runtime heartbeat alert, so OpenClaw can consume the evolved heartbeat mechanism without duplicating kernel logic.
+
 - **Zero-Trash Cron Ready**
   Includes `scripts/cleanup_trash.sh` for scheduled cleanup of temporary debug, failure, patch, and log residues.
 
@@ -56,6 +59,7 @@ openclaw-company-management/
 ├── scripts/
 │   ├── agent_bus_worker.py           # Agent-bus inbox worker
 │   ├── agent_comm_contract.py        # Agent communication validation
+│   ├── company_kernel_bridge.py      # Company Kernel health and heartbeat bridge
 │   ├── agent_registry.py             # Agent registry helpers
 │   ├── cleanup_trash.sh              # Zero-trash cleanup script
 │   ├── progress_report.py            # Structured progress reporter
@@ -145,6 +149,13 @@ python3 scripts/progress_report.py \
   --checking "dry run"
 ```
 
+Check the evolved Company Kernel heartbeat status from OpenClaw:
+
+```bash
+python3 scripts/company_kernel_bridge.py health
+python3 scripts/company_kernel_bridge.py heartbeat-alert
+```
+
 `progress_report.py` runs as a dry run by default. Add `--apply` only when the report should be written into the configured OpenClaw agent bus.
 
 ### Configuration
@@ -189,6 +200,9 @@ Secrets, tokens, and passwords should stay outside the repository and be passed 
 
 - **Agent 通信契约**
   使用 `acknowledged`、`in_progress`、`blocked`、`completed` 等明确状态，减少无证据交接。
+
+- **Company Kernel 桥接**
+  提供 OpenClaw 侧轻量健康桥，统一读取 Company Kernel `doctor --summary` 与运行时心跳告警，让新版心跳机制能被 OpenClaw 继续监控，避免重复实现内核逻辑。
 
 - **零垃圾定时清理**
   `scripts/cleanup_trash.sh` 可用于定时清理 `tmp`、`logs` 中过期调试、失败、补丁残留文件。

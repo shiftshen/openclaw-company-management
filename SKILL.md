@@ -30,6 +30,11 @@ description: "OpenClaw 核心公司管理技能包：涵盖统一执行器、单
 - 产生在 `/tmp/`、`logs/` 下的调试文件 `.bak`、`.patch`、重复生成的废弃 `.json` 等，一旦业务跑通必须顺手物理删除 (`rm -f`)。
 - 不得让工作区堆积会造成自我困惑的脏数据。
 
+### 5. Company Kernel 心跳桥接 (Heartbeat Bridge)
+- OpenClaw 侧只通过 `company_kernel_bridge.py health` 读取 Company Kernel `doctor --summary`，不要复制内核心跳判断。
+- 告警统一通过 `company_kernel_bridge.py heartbeat-alert` 读取既有 `company_runtime_alert.py --json-only` 结果；若 Company Kernel 心跳健康，应抑制 `company_wide_no_heartbeat` 与 `main_no_heartbeat` 误报。
+- 默认路径可用 `COMPANY_KERNEL_DIR` 与 `OPENCLAW_COMPANY_RUNTIME_ALERT` 覆盖；不要把本机绝对路径硬编码进业务脚本。
+
 ---
 
 ## 二、员工（Agent）入职规程 (Employee Onboarding Protocol)
@@ -77,4 +82,4 @@ description: "OpenClaw 核心公司管理技能包：涵盖统一执行器、单
 要将这套管理机制迁移到新的 Mac 节点：
 1. 检出此目录 `skills/company-management`。
 2. 执行 `OPENCLAW_WORKSPACE=$HOME/openclaw/workspace-main ./install.sh` 初始化或加固全局数据库；该动作只建表/索引，不清空已有 `skill_accounts.db` 数据。
-3. `install.sh` 会同步标准执行器到目标工作区 `scripts/`，包括 `unified_time.py`、`unified_browser.py`、`unified_outbound.py`、`agent_bus_worker.py`、`agent_registry.py`、`request_main.py` 及其通信契约依赖。
+3. `install.sh` 会同步标准执行器到目标工作区 `scripts/`，包括 `unified_time.py`、`unified_browser.py`、`unified_outbound.py`、`agent_bus_worker.py`、`agent_registry.py`、`request_main.py`、`company_kernel_bridge.py` 及其通信契约依赖。

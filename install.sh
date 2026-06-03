@@ -51,6 +51,7 @@ for script in \
   agent_registry.py \
   request_main.py \
   agent_comm_contract.py \
+  company_kernel_bridge.py \
   cleanup_trash.sh \
   progress_report.py
 do

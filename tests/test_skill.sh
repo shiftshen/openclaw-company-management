@@ -25,7 +25,7 @@ mkdir -p "$OPENCLAW_WORKSPACE/config" "$OPENCLAW_WORKSPACE/scripts"
 sqlite3 "$OPENCLAW_WORKSPACE/config/skill_accounts.db" < "$BASE_DIR/templates/skill_accounts.sql"
 sqlite3 "$OPENCLAW_WORKSPACE/config/skill_accounts.db" "INSERT OR IGNORE INTO skill_accounts (skill, business, platform, account_label, notes) VALUES ('test-skill','testbiz','line','test-account','preserve-check');"
 bash "$BASE_DIR/install.sh" >/dev/null
-for script in unified_time.py unified_browser.py unified_outbound.py agent_bus_worker.py agent_registry.py request_main.py agent_comm_contract.py; do
+for script in unified_time.py unified_browser.py unified_outbound.py agent_bus_worker.py agent_registry.py request_main.py agent_comm_contract.py company_kernel_bridge.py; do
   if [[ ! -x "$OPENCLAW_WORKSPACE/scripts/$script" ]]; then
     echo "FAIL: deployed script missing or not executable: $script"
     exit 1
@@ -52,6 +52,25 @@ fi
 echo "[4] Testing Python script compilation..."
 python3 -m py_compile "$BASE_DIR"/scripts/*.py
 echo "SUCCESS: Python syntax OK."
+
+# 5. Test Company Kernel bridge against fake local commands
+echo "[5] Testing Company Kernel bridge..."
+FAKE_KERNEL="$TMP_DIR/company-kernel"
+mkdir -p "$FAKE_KERNEL/bin" "$TMP_DIR/workspace/scripts"
+cat > "$FAKE_KERNEL/bin/companyctl" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' '{"ok":true,"counts":{"employees":2,"heartbeats":2},"heartbeat":{"missing":0,"stale":0},"daemon":{"ok":true,"age_minutes":0},"issues":[]}'
+SH
+chmod +x "$FAKE_KERNEL/bin/companyctl"
+python3 "$BASE_DIR/scripts/company_kernel_bridge.py" health --company-kernel "$FAKE_KERNEL" >/dev/null
+cat > "$TMP_DIR/workspace/scripts/company_runtime_alert.py" <<'PY'
+#!/usr/bin/env python3
+import json
+print(json.dumps({"ok": True, "severity": "ok", "reasons": [], "summary": {"employee_count": 8, "healthy_recent_count": 8, "no_heartbeat_count": 0, "company_kernel_ok": True, "company_kernel_heartbeats": 14, "main_down_suspected": False, "company_wide_no_heartbeat": False}}))
+PY
+chmod +x "$TMP_DIR/workspace/scripts/company_runtime_alert.py"
+python3 "$BASE_DIR/scripts/company_kernel_bridge.py" heartbeat-alert --alert-script "$TMP_DIR/workspace/scripts/company_runtime_alert.py" >/dev/null
+echo "SUCCESS: Company Kernel bridge returned healthy status."
 
 echo "=== All packaging tests passed ==="
 rm -rf "$TMP_DIR"
