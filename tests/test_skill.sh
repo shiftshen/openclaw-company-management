@@ -25,7 +25,7 @@ mkdir -p "$OPENCLAW_WORKSPACE/config" "$OPENCLAW_WORKSPACE/scripts"
 sqlite3 "$OPENCLAW_WORKSPACE/config/skill_accounts.db" < "$BASE_DIR/templates/skill_accounts.sql"
 sqlite3 "$OPENCLAW_WORKSPACE/config/skill_accounts.db" "INSERT OR IGNORE INTO skill_accounts (skill, business, platform, account_label, notes) VALUES ('test-skill','testbiz','line','test-account','preserve-check');"
 bash "$BASE_DIR/install.sh" >/dev/null
-for script in unified_time.py unified_browser.py unified_outbound.py agent_bus_worker.py agent_registry.py request_main.py agent_comm_contract.py company_kernel_bridge.py; do
+for script in unified_time.py unified_browser.py unified_outbound.py agent_bus_worker.py agent_registry.py request_main.py agent_comm_contract.py company_kernel_bridge.py approval_to_codex_queue.py; do
   if [[ ! -x "$OPENCLAW_WORKSPACE/scripts/$script" ]]; then
     echo "FAIL: deployed script missing or not executable: $script"
     exit 1
@@ -98,6 +98,38 @@ if [[ "$REQUEST_COUNT" == "0" ]]; then
   exit 1
 fi
 echo "SUCCESS: request_main accepts codex fallback employee."
+
+# 7. Test approved Telegram action can be synced to Codex queue without polling Telegram
+echo "[7] Testing approval_to_codex_queue bridge..."
+APPROVALS_DIR="$TMP_DIR/openclaw/ops/approvals/approved"
+CODEX_QUEUE_DIR="$TMP_DIR/codex-queue"
+mkdir -p "$APPROVALS_DIR"
+cat > "$APPROVALS_DIR/company-kernel-telegram-real-button-click-smoke.json" <<'JSON'
+{
+  "task_id": "company-kernel-telegram-real-button-click-smoke",
+  "source_agent": "codex",
+  "priority": "P2",
+  "payload": "{\"request\":\"button smoke\",\"safe\":true}",
+  "status": "approved",
+  "approved_by": "xmanx",
+  "approved_at": "2026-06-03T15:45:13"
+}
+JSON
+python3 "$BASE_DIR/scripts/approval_to_codex_queue.py" \
+  --approvals-dir "$APPROVALS_DIR" \
+  --agent-bus "$OPENCLAW_ROOT/ops/agent_bus" \
+  --codex-queue-dir "$CODEX_QUEUE_DIR" \
+  --task-id company-kernel-telegram-real-button-click-smoke \
+  --json >/dev/null
+if [[ ! -f "$CODEX_QUEUE_DIR/approval-company-kernel-telegram-real-button-click-smoke.md" ]]; then
+  echo "FAIL: approval was not written into Codex queue"
+  exit 1
+fi
+if [[ ! -f "$OPENCLAW_ROOT/ops/agent_bus/done/codex/company-kernel-telegram-real-button-click-smoke.approval-synced.json" ]]; then
+  echo "FAIL: approval sync receipt was not written"
+  exit 1
+fi
+echo "SUCCESS: approval sync bridge writes Codex queue task and receipt."
 
 echo "=== All packaging tests passed ==="
 rm -rf "$TMP_DIR"

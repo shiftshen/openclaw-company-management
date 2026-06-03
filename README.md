@@ -38,6 +38,9 @@ It is designed for local-first OpenClaw deployments, but the install path can be
 - **Company Kernel Bridge**
   Exposes a lightweight OpenClaw-side health bridge for Company Kernel `doctor --summary` and the runtime heartbeat alert, so OpenClaw can consume the evolved heartbeat mechanism without duplicating kernel logic.
 
+- **Approval-to-Codex Queue Bridge**
+  Syncs approved OpenClaw OPS approval files into `codex-queue` and writes a Codex-side receipt without starting an independent Telegram Bot API polling watcher.
+
 - **Zero-Trash Cron Ready**
   Includes `scripts/cleanup_trash.sh` for scheduled cleanup of temporary debug, failure, patch, and log residues.
 
@@ -59,6 +62,7 @@ openclaw-company-management/
 ├── scripts/
 │   ├── agent_bus_worker.py           # Agent-bus inbox worker
 │   ├── agent_comm_contract.py        # Agent communication validation
+│   ├── approval_to_codex_queue.py    # OPS approval -> Codex queue bridge
 │   ├── company_kernel_bridge.py      # Company Kernel health and heartbeat bridge
 │   ├── agent_registry.py             # Agent registry helpers
 │   ├── cleanup_trash.sh              # Zero-trash cleanup script
@@ -171,6 +175,16 @@ python3 scripts/company_kernel_bridge.py heartbeat-alert
 
 `progress_report.py` runs as a dry run by default. Add `--apply` only when the report should be written into the configured OpenClaw agent bus.
 
+Sync an approved Telegram OPS approval into the Codex queue without touching Telegram polling:
+
+```bash
+python3 scripts/approval_to_codex_queue.py \
+  --task-id company-kernel-telegram-real-button-click-smoke \
+  --json
+```
+
+This proves the approved-file to Codex queue path. It does not claim Codex has sent a final Telegram reply; that requires a separate completion receipt from Codex or an OpenClaw-native outbound message path.
+
 ### Configuration
 
 Common environment variables:
@@ -217,6 +231,9 @@ Secrets, tokens, and passwords should stay outside the repository and be passed 
 - **Company Kernel 桥接**
   提供 OpenClaw 侧轻量健康桥，统一读取 Company Kernel `doctor --summary` 与运行时心跳告警，让新版心跳机制能被 OpenClaw 继续监控，避免重复实现内核逻辑。
 
+- **审批到 Codex 队列桥接**
+  将 OpenClaw OPS 已批准审批文件同步到 `codex-queue`，并写入 Codex 侧回执；不启动独立 Telegram Bot API polling watcher，避免抢占 OpenClaw 原生 Telegram 消息流。
+
 - **零垃圾定时清理**
   `scripts/cleanup_trash.sh` 可用于定时清理 `tmp`、`logs` 中过期调试、失败、补丁残留文件。
 
@@ -238,6 +255,7 @@ openclaw-company-management/
 ├── scripts/
 │   ├── agent_bus_worker.py           # agent-bus inbox worker
 │   ├── agent_comm_contract.py        # Agent 通信字段校验
+│   ├── approval_to_codex_queue.py    # OPS 审批 -> Codex 队列桥接
 │   ├── agent_registry.py             # Agent 注册表辅助脚本
 │   ├── cleanup_trash.sh              # 零垃圾清理脚本
 │   ├── progress_report.py            # 结构化进度上报
@@ -328,6 +346,16 @@ python3 scripts/progress_report.py \
 ```
 
 `progress_report.py` 默认是 dry run；只有加 `--apply` 才会写入配置的 OpenClaw agent bus。
+
+把已通过的 Telegram OPS 审批同步到 Codex 队列，且不接管 Telegram polling：
+
+```bash
+python3 scripts/approval_to_codex_queue.py \
+  --task-id company-kernel-telegram-real-button-click-smoke \
+  --json
+```
+
+这只能证明“审批文件已进入 Codex 侧队列”。它不等于“Codex 已自动发 Telegram final reply”；后者需要 Codex 完成回执或接入 OpenClaw 原生外发通道。
 
 ### 配置
 

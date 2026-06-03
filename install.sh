@@ -52,6 +52,7 @@ for script in \
   request_main.py \
   agent_comm_contract.py \
   company_kernel_bridge.py \
+  approval_to_codex_queue.py \
   cleanup_trash.sh \
   progress_report.py
 do
