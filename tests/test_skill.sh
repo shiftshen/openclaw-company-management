@@ -25,7 +25,7 @@ mkdir -p "$OPENCLAW_WORKSPACE/config" "$OPENCLAW_WORKSPACE/scripts"
 sqlite3 "$OPENCLAW_WORKSPACE/config/skill_accounts.db" < "$BASE_DIR/templates/skill_accounts.sql"
 sqlite3 "$OPENCLAW_WORKSPACE/config/skill_accounts.db" "INSERT OR IGNORE INTO skill_accounts (skill, business, platform, account_label, notes) VALUES ('test-skill','testbiz','line','test-account','preserve-check');"
 bash "$BASE_DIR/install.sh" >/dev/null
-for script in unified_time.py unified_browser.py unified_outbound.py agent_bus_worker.py agent_registry.py request_main.py agent_comm_contract.py company_kernel_bridge.py attendance_sweep.py approval_to_codex_queue.py; do
+for script in unified_time.py unified_browser.py unified_outbound.py agent_bus_worker.py agent_registry.py request_main.py agent_comm_contract.py company_kernel_bridge.py attendance_sweep.py agent_comm_smoke.py approval_to_codex_queue.py; do
   if [[ ! -x "$OPENCLAW_WORKSPACE/scripts/$script" ]]; then
     echo "FAIL: deployed script missing or not executable: $script"
     exit 1

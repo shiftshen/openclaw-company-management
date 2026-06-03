@@ -183,6 +183,14 @@ python3 scripts/attendance_sweep.py sweep
 
 The sweep classifies each employee as `online`, `session_missing`, `worker_stalled`, `heartbeat_disabled`, or `no_reply`. `online` requires a non-empty OpenClaw session store and a clear Telegram ingress spool; if an employee has pending or processing ingress files, it is reported as `worker_stalled`.
 
+Run a local communication smoke without restarting existing services:
+
+```bash
+python3 scripts/agent_comm_smoke.py --agents main,nestcar --line-account nestcar
+```
+
+This verifies Gateway reachability, the existing LINE webhook endpoint, attendance state, and real OpenClaw agent replies in one JSON evidence report.
+
 Sync an approved Telegram OPS approval into the Codex queue without touching Telegram polling:
 
 ```bash
