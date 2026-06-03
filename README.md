@@ -149,6 +149,19 @@ python3 scripts/progress_report.py \
   --checking "dry run"
 ```
 
+Submit a structured request to Main from a Company Kernel employee:
+
+```bash
+python3 scripts/request_main.py \
+  --agent codex \
+  --request-type ops_request \
+  --objective "route future approvals to Telegram" \
+  --requested-action "notify the owner through Telegram when approval is required" \
+  --apply
+```
+
+`request_main.py` resolves OpenClaw business agents from `agent_registry.json` and also accepts Company Kernel employees such as `codex`, `hermes`, `claude`, `trae`, `antigravity`, and `openclaw-main` even when they are not listed in the legacy OpenClaw registry.
+
 Check the evolved Company Kernel heartbeat status from OpenClaw:
 
 ```bash

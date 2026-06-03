@@ -55,6 +55,7 @@ description: "OpenClaw 核心公司管理技能包：涵盖统一执行器、单
 #### 步骤一：全局登记 (Global Registration)
 - 将新员工参数写入注册表：`${OPENCLAW_WORKSPACE:-$HOME/openclaw/workspace-main}/config/agent_registry.json`；本机 Shift 环境可继续回退到既有 `workspace-xmanx`。
 - 如果涉及 UI/前端路由，执行 `agent_registry.py --discover` 刷新全公司通讯录。
+- `request_main.py` 必须接受 Company Kernel 员工（`codex`、`hermes`、`claude`、`trae`、`antigravity`、`openclaw-main`）作为合法发起人；这些员工不一定存在于旧 OpenClaw `agent_registry.json`。
 
 #### 步骤二：分配工位与标准六件套 (Workspace Initialization)
 为新员工创建专属 `workspace`，并严格初始化以下六个核心文件（缺一不可）：

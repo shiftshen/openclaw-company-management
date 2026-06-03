@@ -22,8 +22,18 @@ REG=MAIN_WS/'config'/'agent_registry.json'
 BUS=Path(os.environ.get('OPENCLAW_AGENT_BUS', ROOT / 'ops' / 'agent_bus')).expanduser()
 REQUEST_TYPES={'blocker','bug_report','debug_request','approval_request','ops_request','review_request','governance_request','cross_agent_handoff','evidence_for_verification'}
 PRIORITY={'P1','P2','P3'}
+COMPANY_EMPLOYEE_ALIASES={
+  'codex': ['codex', 'engineering', 'engineer'],
+  'hermes': ['hermes', 'supervisor'],
+  'claude': ['claude'],
+  'trae': ['trae'],
+  'antigravity': ['antigravity', 'ag'],
+  'openclaw-main': ['openclaw-main', 'openclaw main', 'company-main'],
+}
 
 def reg_agents():
+    if not REG.exists():
+        return {}
     return json.loads(REG.read_text()).get('agents',{})
 
 def norm(s): return ''.join(str(s).lower().replace('-', '').replace('_','').split())
@@ -34,6 +44,9 @@ def resolve_agent(q):
         vals=[aid]+info.get('aliases',[])
         if any(nq==norm(v) for v in vals): return aid
     if q in agents: return q
+    for aid,aliases in COMPANY_EMPLOYEE_ALIASES.items():
+        vals=[aid]+aliases
+        if any(nq==norm(v) for v in vals): return aid
     raise SystemExit(f'unknown agent in registry: {q}')
 
 def now(): return datetime.now().strftime('%Y-%m-%dT%H:%M:%S')

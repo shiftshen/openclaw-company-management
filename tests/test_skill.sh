@@ -72,5 +72,32 @@ chmod +x "$TMP_DIR/workspace/scripts/company_runtime_alert.py"
 python3 "$BASE_DIR/scripts/company_kernel_bridge.py" heartbeat-alert --alert-script "$TMP_DIR/workspace/scripts/company_runtime_alert.py" >/dev/null
 echo "SUCCESS: Company Kernel bridge returned healthy status."
 
+# 6. Test request_main can submit from Company Kernel employees not present in OpenClaw registry
+echo "[6] Testing request_main Company Kernel employee fallback..."
+mkdir -p "$OPENCLAW_WORKSPACE/config" "$OPENCLAW_ROOT/ops/agent_bus/inbox/main"
+cat > "$OPENCLAW_WORKSPACE/config/agent_registry.json" <<'JSON'
+{
+  "agents": {
+    "main": {
+      "workspace": "/tmp/main",
+      "aliases": ["main"]
+    }
+  }
+}
+JSON
+python3 "$BASE_DIR/scripts/request_main.py" \
+  --agent codex \
+  --request-type ops_request \
+  --priority P2 \
+  --objective "verify request_main fallback" \
+  --requested-action "acknowledge fallback request" \
+  --apply >/dev/null
+REQUEST_COUNT=$(find "$OPENCLAW_ROOT/ops/agent_bus/inbox/main" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')
+if [[ "$REQUEST_COUNT" == "0" ]]; then
+  echo "FAIL: request_main did not write a main inbox request"
+  exit 1
+fi
+echo "SUCCESS: request_main accepts codex fallback employee."
+
 echo "=== All packaging tests passed ==="
 rm -rf "$TMP_DIR"
