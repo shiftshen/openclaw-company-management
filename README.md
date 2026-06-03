@@ -175,6 +175,14 @@ python3 scripts/company_kernel_bridge.py heartbeat-alert
 
 `progress_report.py` runs as a dry run by default. Add `--apply` only when the report should be written into the configured OpenClaw agent bus.
 
+Run an employee attendance sweep without trusting directory status:
+
+```bash
+python3 scripts/attendance_sweep.py sweep
+```
+
+The sweep classifies each employee as `online`, `session_missing`, `worker_stalled`, `heartbeat_disabled`, or `no_reply`. `online` requires a non-empty OpenClaw session store and a clear Telegram ingress spool; if an employee has pending or processing ingress files, it is reported as `worker_stalled`.
+
 Sync an approved Telegram OPS approval into the Codex queue without touching Telegram polling:
 
 ```bash

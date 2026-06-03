@@ -25,7 +25,7 @@ mkdir -p "$OPENCLAW_WORKSPACE/config" "$OPENCLAW_WORKSPACE/scripts"
 sqlite3 "$OPENCLAW_WORKSPACE/config/skill_accounts.db" < "$BASE_DIR/templates/skill_accounts.sql"
 sqlite3 "$OPENCLAW_WORKSPACE/config/skill_accounts.db" "INSERT OR IGNORE INTO skill_accounts (skill, business, platform, account_label, notes) VALUES ('test-skill','testbiz','line','test-account','preserve-check');"
 bash "$BASE_DIR/install.sh" >/dev/null
-for script in unified_time.py unified_browser.py unified_outbound.py agent_bus_worker.py agent_registry.py request_main.py agent_comm_contract.py company_kernel_bridge.py approval_to_codex_queue.py; do
+for script in unified_time.py unified_browser.py unified_outbound.py agent_bus_worker.py agent_registry.py request_main.py agent_comm_contract.py company_kernel_bridge.py attendance_sweep.py approval_to_codex_queue.py; do
   if [[ ! -x "$OPENCLAW_WORKSPACE/scripts/$script" ]]; then
     echo "FAIL: deployed script missing or not executable: $script"
     exit 1
@@ -72,8 +72,64 @@ chmod +x "$TMP_DIR/workspace/scripts/company_runtime_alert.py"
 python3 "$BASE_DIR/scripts/company_kernel_bridge.py" heartbeat-alert --alert-script "$TMP_DIR/workspace/scripts/company_runtime_alert.py" >/dev/null
 echo "SUCCESS: Company Kernel bridge returned healthy status."
 
-# 6. Test request_main can submit from Company Kernel employees not present in OpenClaw registry
-echo "[6] Testing request_main Company Kernel employee fallback..."
+# 6. Test attendance sweep does not trust registry availability and catches stalled workers
+echo "[6] Testing attendance sweep classification..."
+mkdir -p "$OPENCLAW_ROOT/agents/main/sessions" \
+  "$OPENCLAW_ROOT/agents/nestcar/sessions" \
+  "$OPENCLAW_ROOT/agents/codex/sessions" \
+  "$OPENCLAW_ROOT/telegram/ingress-spool-nestcar" \
+  "$OPENCLAW_WORKSPACE/reports/attendance"
+cat > "$OPENCLAW_ROOT/agents/main/sessions/sessions.json" <<'JSON'
+{"main-session":{"status":"active"}}
+JSON
+cat > "$OPENCLAW_ROOT/agents/nestcar/sessions/sessions.json" <<'JSON'
+{"nestcar-session":{"status":"active"}}
+JSON
+printf '{}' > "$OPENCLAW_ROOT/agents/codex/sessions/sessions.json"
+cat > "$OPENCLAW_ROOT/telegram/ingress-spool-nestcar/0000000000000001.json.processing" <<'JSON'
+{"update_id":1}
+JSON
+cat > "$OPENCLAW_WORKSPACE/config/agent_registry.json" <<'JSON'
+{
+  "agents": {
+    "main": {"workspace": "/tmp/main", "role": "main", "status": "available"},
+    "nestcar": {"workspace": "/tmp/nestcar", "role": "nestcar", "status": "available"},
+    "codex": {"workspace": "/tmp/codex", "role": "codex", "status": "available"}
+  }
+}
+JSON
+ATTENDANCE_JSON="$TMP_DIR/attendance.json"
+set +e
+OPENCLAW_ATTENDANCE_DIR="$TMP_DIR/attendance-reports" \
+python3 "$BASE_DIR/scripts/attendance_sweep.py" sweep \
+  --agents main,nestcar,codex \
+  --sweep-id test-attendance \
+  --no-include-discovered > "$ATTENDANCE_JSON"
+ATTENDANCE_CODE=$?
+set -e
+if [[ "$ATTENDANCE_CODE" == "0" ]]; then
+  echo "FAIL: attendance sweep should exit non-zero when a worker is stalled"
+  exit 1
+fi
+python3 - "$ATTENDANCE_JSON" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+payload = json.loads(Path(sys.argv[1]).read_text())
+rows = {row["agent"]: row for row in payload["employees"]}
+assert rows["main"]["status"] == "online", rows["main"]
+assert rows["main"]["reply"] == "main 报到", rows["main"]
+assert rows["nestcar"]["status"] == "worker_stalled", rows["nestcar"]
+assert rows["codex"]["status"] == "session_missing", rows["codex"]
+assert payload["counts"]["online"] == 1, payload["counts"]
+assert Path(payload["evidence"]["json"]).exists(), payload["evidence"]
+assert Path(payload["evidence"]["markdown"]).exists(), payload["evidence"]
+PY
+echo "SUCCESS: attendance sweep catches worker_stalled and session_missing."
+
+# 7. Test request_main can submit from Company Kernel employees not present in OpenClaw registry
+echo "[7] Testing request_main Company Kernel employee fallback..."
 mkdir -p "$OPENCLAW_WORKSPACE/config" "$OPENCLAW_ROOT/ops/agent_bus/inbox/main"
 cat > "$OPENCLAW_WORKSPACE/config/agent_registry.json" <<'JSON'
 {
@@ -99,8 +155,8 @@ if [[ "$REQUEST_COUNT" == "0" ]]; then
 fi
 echo "SUCCESS: request_main accepts codex fallback employee."
 
-# 7. Test approved Telegram action can be synced to Codex queue without polling Telegram
-echo "[7] Testing approval_to_codex_queue bridge..."
+# 8. Test approved Telegram action can be synced to Codex queue without polling Telegram
+echo "[8] Testing approval_to_codex_queue bridge..."
 APPROVALS_DIR="$TMP_DIR/openclaw/ops/approvals/approved"
 CODEX_QUEUE_DIR="$TMP_DIR/codex-queue"
 mkdir -p "$APPROVALS_DIR"
