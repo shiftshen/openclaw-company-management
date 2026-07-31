@@ -57,8 +57,9 @@ def _try_browser_init(acc: dict) -> dict:
 
         with sync_playwright() as p:
             ctx = p.chromium.launch_persistent_context(
+                chromium_sandbox=True,
                 user_data_dir=str(profile_dir),
-                executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                # 自动化用独立 Chrome for Testing(不设 executable_path → Playwright 自带,绝不碰 owner 日常 Chrome.app)
                 headless=True,
                 viewport={'width': 1200, 'height': 800},
                 accept_downloads=False

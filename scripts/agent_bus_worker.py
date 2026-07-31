@@ -78,6 +78,39 @@ def receipt_for(agent: str, task_path: Path, status: str, note: str):
         receipt_path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2))
     return receipt
 
+
+def write_json(path: Path, obj: dict):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".tmp-{path.name}-{os.getpid()}")
+    data = json.dumps(obj, ensure_ascii=False, indent=2) + "\n"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        fh.write(data)
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(tmp, path)
+
+
+def move_inbox_task(agent: str, task_path: Path, state: str, status: str, evidence_path: str = "", result: str = ""):
+    try:
+        task = load_task(task_path)
+    except Exception:
+        task = {"task_id": task_path.stem}
+    task["status"] = status
+    task["updated_at"] = datetime.now().isoformat(timespec="seconds")
+    if evidence_path:
+        task["evidence_path"] = evidence_path
+    if result:
+        task["result"] = result
+    dst_dir = BUS / state / agent
+    dst_dir.mkdir(parents=True, exist_ok=True)
+    dst = dst_dir / task_path.name
+    write_json(dst, task)
+    try:
+        task_path.unlink()
+    except FileNotFoundError:
+        pass
+    return str(dst)
+
 def main():
     ap=argparse.ArgumentParser(description='Process or ACK agent_bus inbox tasks.')
     ap.add_argument('--agent', required=True, choices=sorted(WORKSPACES))
@@ -105,9 +138,11 @@ def main():
             payload=t.get('payload',{})
             cmd=None
             if isinstance(payload,dict):
-                cmd=payload.get('next_command') or payload.get('command')
+                cmd=payload.get('next_command') or payload.get('canonical_next_command') or payload.get('command') or payload.get('recommended_command')
             if not cmd:
-                results.append({'file':str(p),'error':'No next_command found'})
+                receipt = receipt_for(args.agent, p, 'blocked', 'No next_command found')
+                moved_to = move_inbox_task(args.agent, p, 'failed', 'blocked', receipt.get('evidence_path') or '', 'missing_next_command')
+                results.append({'file':str(p),'error':'No next_command found','receipt':receipt,'moved_to':moved_to})
                 continue
             cmd = cmd.replace('TASK_ID', t.get('task_id') or p.stem)
             cp=subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=str(WORKSPACES[args.agent]))
